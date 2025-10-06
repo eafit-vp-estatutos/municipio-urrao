@@ -1,0 +1,1152 @@
+---
+title: "Análisis estatuto de Urrao"
+format: 
+  html:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    theme: cosmo
+    smooth-scroll: true
+execute:
+  echo: false
+  warning: false
+  message: false
+params:
+  cod_dane: "05847"
+  nombre: "Urrao"
+lang: es
+---
+
+
+Este proyecto presenta un análisis exhaustivo de los estatutos tributarios del municipio de 
+Para el análisis del municipio de , enfocándose específicamente en la estructura del impuesto predial. El estatuto fue acompañado de un análisis jurídico y de contenido detallado del capítulo de impuestos prediales contenido en sus estatutos de rentas.
+
+Para el análisis del municipio se tuvieron  en cuenta los siguientes estatutos y modificaciones:
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+# Función para leer archivos RDS con rutas relativas
+lee_rds <- function(rel){
+  candidatos <- c(rel, file.path('..', rel), file.path('..','..', rel))
+  existente <- candidatos[file.exists(candidatos)][1]
+  if(is.na(existente)) stop('No se encontró ', rel, ' en rutas: ', paste(candidatos, collapse=', '))
+  readRDS(existente)
+}
+
+# Cargar librerías necesarias
+library(dplyr)
+library(knitr)
+library(ggplot2)
+library(scales)
+suppressPackageStartupMessages({
+  library(gridExtra, quietly = TRUE)
+  library(grid, quietly = TRUE)
+  library(tidyr, quietly = TRUE)
+})
+
+# Configurar opciones de gráficos
+options(scipen = 999)  # Evitar notación científica
+
+# Cargar datos completos con manejo de ausencia del archivo
+datos_disponibles <- TRUE
+bd_estatutos <- NULL
+tryCatch({
+  bd_estatutos <- lee_rds("ds_estatutos/BD_Estatutos.rds")
+}, error = function(e){
+  datos_disponibles <<- FALSE
+  mensaje <- paste0("⚠️ No se encontró el dataset 'BD_Estatutos.rds'. Se mostrará una versión reducida del informe. Detalle: ", e$message)
+  message(mensaje)
+  cat(mensaje, "\n\n")
+})
+
+# Filtrar para el municipio específico (si hay datos)
+if (datos_disponibles) {
+  datos_municipio <- bd_estatutos %>% filter(codigo_dane == params$cod_dane)
+} else {
+  datos_municipio <- data.frame()
+}
+
+# Tabla de estatutos
+freq_cat <- datos_municipio %>%
+  mutate(
+    filename = if ('filename' %in% names(cur_data_all())) filename else NA_character_,
+    enlace_pdf = if_else(!is.na(filename) & filename != "", 
+                         paste0("[Descargar PDF](pdfs/", filename, ")"), 
+                         "No disponible")
+  ) %>%
+  select(any_of(c("mpio","anio","tipo","numero","observaciones","enlace_pdf")))
+
+if (nrow(freq_cat) == 0) {
+  cat("No hay estatutos registrados para este municipio.\n")
+} else {
+  knitr::kable(head(freq_cat, 200), caption = "Estatutos Usados para el Estudio", escape = FALSE)
+}
+```
+
+
+Para ver más análisis agregados y los detalles metodológicos puede visitar este enlace [(ir)](https://jcmunozmora.github.io/estatutos_analisis/).
+
+# Estadísticas del municipio
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+if (nrow(datos_municipio) > 0) {
+  # Estadísticas básicas
+  cat("## Resumen estadístico\n\n")
+  cat("- **Total de registros analizados:** ", nrow(datos_municipio), "\n")
+  
+  if ("anio" %in% names(datos_municipio)) {
+    anos_unicos <- sort(unique(datos_municipio$anio[!is.na(datos_municipio$anio)]))
+    if (length(anos_unicos) > 0) {
+      cat("- **Período analizado:** ", min(anos_unicos), " - ", max(anos_unicos), "\n")
+      cat("- **Años con estatutos:** ", paste(anos_unicos, collapse = ", "), "\n")
+    }
+  }
+  
+  if ("tipo" %in% names(datos_municipio)) {
+    tipos_unicos <- unique(datos_municipio$tipo[!is.na(datos_municipio$tipo)])
+    if (length(tipos_unicos) > 0) {
+      cat("- **Tipos de normativa:** ", paste(tipos_unicos, collapse = ", "), "\n")
+    }
+  }
+  
+  # Comparación con el departamento
+  total_departamento <- nrow(bd_estatutos)
+  porcentaje <- round((nrow(datos_municipio) / total_departamento) * 100, 2)
+  cat("- **Representación en el estudio:** ", porcentaje, "% del total departamental\n")
+  
+} else {
+  cat("No hay datos disponibles para generar estadísticas.\n")
+}
+```
+
+# Análisis de estructura tarifaria
+
+## Combinaciones de criterios tarifarios
+
+```{r}
+#| echo: false
+#| results: asis
+#| fig-width: 10
+#| fig-height: 6
+
+# Verificar si existe la imagen de combinaciones para este municipio
+img_combos <- paste0("img_estatutos/", params$cod_dane, "_combos.png")
+
+if (file.exists(img_combos)) {
+  cat("Este gráfico muestra las diferentes combinaciones de criterios utilizados en la estructura tarifaria del municipio:\n\n")
+  cat("![Combinaciones de criterios tarifarios](", img_combos, "){width=90%}\n\n")
+  cat("**Descripción:** Visualización de las combinaciones de criterios (avalúo, área, destino, estrato, etc.) utilizadas para determinar las tarifas prediales en ", params$nombre, ".\n\n")
+  cat("**Interpretación:** Cada combinación representa una regla específica del estatuto tributario. Mayor número de combinaciones indica mayor complejidad normativa.\n\n")
+} else {
+  # Generar análisis dinámico desde los datos
+  cat("### Análisis de criterios tarifarios (generado dinámicamente)\n\n")
+  
+  tryCatch({
+    bd_transcripciones <- lee_rds("ds_estatutos/BD_Transcripciones.rds")
+    
+    # Filtrar datos del municipio
+    datos_criterios <- bd_transcripciones %>%
+      filter(codigo_dane == params$cod_dane)
+    
+    if (nrow(datos_criterios) > 0) {
+      library(ggplot2)
+      library(dplyr)
+      
+      # Analizar qué criterios se utilizan
+      criterios_utilizados <- datos_criterios %>%
+        summarise(
+          usa_avaluo = any(!is.na(avaluo_desde) | !is.na(avaluo_hasta)),
+          usa_area = any(!is.na(area_desde) | !is.na(area_hasta)),
+          usa_destino = any(!is.na(destino) & destino != ""),
+          usa_estrato = any(!is.na(estrato) & estrato != ""),
+          usa_zona = any(!is.na(zona) & zona != "")
+        )
+      
+      # Crear resumen de criterios
+      criterios_activos <- c()
+      if (criterios_utilizados$usa_avaluo) criterios_activos <- c(criterios_activos, "Avalúo")
+      if (criterios_utilizados$usa_area) criterios_activos <- c(criterios_activos, "Área")
+      if (criterios_utilizados$usa_destino) criterios_activos <- c(criterios_activos, "Destino")
+      if (criterios_utilizados$usa_estrato) criterios_activos <- c(criterios_activos, "Estrato")
+      if (criterios_utilizados$usa_zona) criterios_activos <- c(criterios_activos, "Zona")
+      
+      cat("**Criterios tarifarios identificados:**\n")
+      if (length(criterios_activos) > 0) {
+        for (criterio in criterios_activos) {
+          cat("- ✓ ", criterio, "\n")
+        }
+      } else {
+        cat("- No se identificaron criterios específicos en los datos disponibles\n")
+      }
+      cat("\n")
+      
+      # Análisis de combinaciones más frecuentes
+      if (length(criterios_activos) > 1) {
+        # Crear combinaciones de criterios
+        combinaciones <- datos_criterios %>%
+          mutate(
+            combinacion = paste(
+              ifelse(!is.na(avaluo_desde) | !is.na(avaluo_hasta), "Avalúo", ""),
+              ifelse(!is.na(area_desde) | !is.na(area_hasta), "Área", ""),
+              ifelse(!is.na(destino) & destino != "", "Destino", ""),
+              ifelse(!is.na(estrato) & estrato != "", "Estrato", ""),
+              ifelse(!is.na(zona) & zona != "", "Zona", ""),
+              sep = "+"
+            )
+          ) %>%
+          mutate(combinacion = gsub("\\+{2,}", "+", combinacion)) %>%
+          mutate(combinacion = gsub("^\\+|\\+$", "", combinacion)) %>%
+          filter(combinacion != "") %>%
+          count(combinacion, sort = TRUE)
+        
+        if (nrow(combinaciones) > 0) {
+          cat("**Combinaciones de criterios más frecuentes:**\n")
+          for (i in 1:min(5, nrow(combinaciones))) {
+            cat("- ", combinaciones$combinacion[i], ": ", combinaciones$n[i], " reglas\n")
+          }
+          cat("\n")
+          
+          # Gráfico de barras de combinaciones
+          if (nrow(combinaciones) > 1) {
+            p_combos <- ggplot(head(combinaciones, 10), aes(x = reorder(combinacion, n), y = n)) +
+              geom_col(fill = "steelblue", alpha = 0.8) +
+              coord_flip() +
+              labs(
+                title = paste("Combinaciones de criterios tarifarios -", params$nombre),
+                subtitle = "Top 10 combinaciones más utilizadas",
+                x = "Combinación de criterios",
+                y = "Número de reglas",
+                caption = "Fuente: Análisis de estatutos tributarios"
+              ) +
+              theme_minimal() +
+              theme(
+                plot.title = element_text(size = 14, face = "bold"),
+                plot.subtitle = element_text(size = 12),
+                axis.title = element_text(size = 11)
+              )
+            
+            print(p_combos)
+          }
+        }
+      }
+      
+      # Estadísticas de complejidad
+      cat("\n**Análisis de complejidad normativa:**\n")
+      cat("- **Total de reglas analizadas:** ", nrow(datos_criterios), "\n")
+      cat("- **Número de criterios utilizados:** ", length(criterios_activos), "\n")
+      
+      if (length(criterios_activos) >= 3) {
+        cat("- **Clasificación:** Sistema de alta complejidad (múltiples criterios)\n")
+      } else if (length(criterios_activos) == 2) {
+        cat("- **Clasificación:** Sistema de complejidad moderada\n")
+      } else {
+        cat("- **Clasificación:** Sistema de baja complejidad (criterio único o simple)\n")
+      }
+      
+    } else {
+      cat("No se encontraron datos de criterios tarifarios para este municipio.\n")
+    }
+    
+  }, error = function(e) {
+    cat("*No fue posible generar el análisis de criterios tarifarios para este municipio.*\n")
+    cat("*Motivo: Datos de transcripción no disponibles o incompletos.*\n")
+  })
+}
+```
+
+## Distribución de tarifas
+
+```{r}
+#| echo: false
+#| results: asis
+#| fig-width: 10
+#| fig-height: 6
+
+# Verificar si existe la imagen de distribución de tarifas
+img_tarifas <- paste0("img_estatutos/", params$cod_dane, "_dist_tarifas.png")
+
+if (file.exists(img_tarifas)) {
+  cat("La distribución de tarifas muestra el rango y frecuencia de las diferentes tarifas prediales establecidas:\n\n")
+  cat("![Distribución de tarifas prediales](", img_tarifas, "){width=90%}\n\n")
+  cat("**Descripción:** Histograma que muestra la distribución de las tarifas prediales por mil (‰) establecidas en el estatuto de ", params$nombre, ".\n\n")
+  cat("**Interpretación:** La forma de la distribución indica si el municipio tiende hacia tarifas uniformes (distribución concentrada) o hacia un esquema más diversificado (distribución dispersa).\n\n")
+} else {
+  # Generar gráfico dinámico desde los datos
+  cat("### Distribución de tarifas prediales (generado dinámicamente)\n\n")
+  
+  tryCatch({
+    bd_transcripciones <- lee_rds("ds_estatutos/BD_Transcripciones.rds")
+    
+    # Filtrar datos del municipio
+    datos_tarifas <- bd_transcripciones %>%
+      filter(codigo_dane == params$cod_dane) %>%
+      filter(!is.na(tarifa), tarifa > 0)
+    
+    if (nrow(datos_tarifas) > 0) {
+      library(ggplot2)
+      
+      # Crear histograma de distribución de tarifas mejorado
+      p_dist <- ggplot(datos_tarifas, aes(x = tarifa)) +
+        geom_histogram(aes(y = after_stat(density)), 
+                       bins = min(30, max(5, nrow(datos_tarifas)/3)), 
+                       fill = "lightblue", color = "darkblue", alpha = 0.7, size = 0.3) +
+        geom_density(alpha = 0.3, fill = "blue", color = "blue", size = 1) +
+        geom_vline(aes(xintercept = median(tarifa)), 
+                   color = "red", linetype = "dashed", size = 1.2) +
+        geom_vline(aes(xintercept = mean(tarifa)), 
+                   color = "orange", linetype = "dashed", size = 1.2) +
+        geom_vline(aes(xintercept = quantile(tarifa, 0.25)), 
+                   color = "purple", linetype = "dotted", size = 0.8, alpha = 0.7) +
+        geom_vline(aes(xintercept = quantile(tarifa, 0.75)), 
+                   color = "purple", linetype = "dotted", size = 0.8, alpha = 0.7) +
+        scale_x_continuous(
+          labels = scales::number_format(suffix = "‰"),
+          name = "Tarifa predial (por mil)"
+        ) +
+        scale_y_continuous(
+          name = "Densidad de probabilidad",
+          labels = scales::number_format(accuracy = 0.01)
+        ) +
+        labs(
+          title = paste("Distribución de tarifas prediales -", params$nombre),
+          subtitle = "🔴 Mediana | 🟠 Promedio | 🟣 Cuartiles (P25, P75) | 🔵 Curva de densidad",
+          caption = "Análisis de concentración y dispersión tarifaria"
+        ) +
+        theme_minimal() +
+        theme(
+          plot.title = element_text(size = 14, face = "bold", color = "darkblue"),
+          plot.subtitle = element_text(size = 10, color = "gray40"),
+          plot.caption = element_text(size = 9, color = "gray50"),
+          axis.title = element_text(size = 11),
+          panel.grid.minor = element_blank(),
+          panel.grid.major = element_line(color = "gray90", size = 0.5)
+        )
+      
+      print(p_dist)
+      
+      # Estadísticas descriptivas mejoradas
+      tarifas_unicas <- unique(datos_tarifas$tarifa)
+      rango_tarifas <- max(datos_tarifas$tarifa) - min(datos_tarifas$tarifa)
+      q10 <- quantile(datos_tarifas$tarifa, 0.1)
+      q90 <- quantile(datos_tarifas$tarifa, 0.9)
+      asimetria <- round((mean(datos_tarifas$tarifa) - median(datos_tarifas$tarifa)) / sd(datos_tarifas$tarifa), 3)
+      
+      cat("\n**Estadísticas descriptivas detalladas:**\n")
+      cat("- **Número total de tarifas diferentes:** ", length(tarifas_unicas), "\n")
+      cat("- **Rango de tarifas:** ", min(datos_tarifas$tarifa), "‰ - ", max(datos_tarifas$tarifa), "‰ (amplitud: ", round(rango_tarifas, 2), "‰)\n")
+      cat("- **Medidas de tendencia central:**\n")
+      cat("  - Promedio: ", round(mean(datos_tarifas$tarifa), 2), "‰\n")
+      cat("  - Mediana: ", round(median(datos_tarifas$tarifa), 2), "‰\n")
+      cat("  - Moda: ", round(as.numeric(names(sort(table(datos_tarifas$tarifa), decreasing = TRUE))[1]), 2), "‰\n")
+      cat("- **Medidas de dispersión:**\n")
+      cat("  - Desviación estándar: ", round(sd(datos_tarifas$tarifa), 2), "‰\n")
+      cat("  - Coeficiente de variación: ", round(sd(datos_tarifas$tarifa)/mean(datos_tarifas$tarifa), 3), "\n")
+      cat("  - Rango intercuartílico (P25-P75): ", round(quantile(datos_tarifas$tarifa, 0.75) - quantile(datos_tarifas$tarifa, 0.25), 2), "‰\n")
+      cat("- **Percentiles clave:**\n")
+      cat("  - P10: ", round(q10, 2), "‰ | P90: ", round(q90, 2), "‰\n")
+      cat("- **Forma de la distribución:**\n")
+      cat("  - Asimetría: ", asimetria, if(asimetria > 0.5) " (sesgada hacia la derecha)" else if(asimetria < -0.5) " (sesgada hacia la izquierda)" else " (aproximadamente simétrica)", "\n")
+      
+      # Análisis de dispersión con interpretación contextual
+      cv <- sd(datos_tarifas$tarifa)/mean(datos_tarifas$tarifa)
+      
+      cat("\n**📊 Análisis de concentración tarifaria:**\n")
+      if (cv < 0.15) {
+        cat("- **Tipo de sistema:** UNIFORME - Las tarifas están muy concentradas\n")
+        cat("- **Ventajas:** Simplicidad administrativa, fácil comprensión ciudadana\n")
+        cat("- **Consideraciones:** Evaluar si captura diferencias en capacidad contributiva\n")
+      } else if (cv < 0.30) {
+        cat("- **Tipo de sistema:** MODERADAMENTE UNIFORME - Concentración con cierta variabilidad\n")
+        cat("- **Ventajas:** Balance entre simplicidad y diferenciación\n")
+        cat("- **Consideraciones:** Sistema equilibrado para contextos urbanos/rurales mixtos\n")
+      } else if (cv < 0.70) {
+        cat("- **Tipo de sistema:** DIVERSIFICADO - Amplio rango de tarifas\n")
+        cat("- **Ventajas:** Mayor precisión en la diferenciación contributiva\n")
+        cat("- **Consideraciones:** Requiere mayor capacidad técnica para aplicación\n")
+      } else {
+        cat("- **Tipo de sistema:** ALTAMENTE DIVERSIFICADO - Muy amplio espectro tarifario\n")
+        cat("- **Ventajas:** Máxima precisión en diferenciación\n")
+        cat("- **Consideraciones:** Alta complejidad administrativa, revisar coherencia\n")
+      }
+      
+      # Análisis de percentiles con interpretación
+      q25 <- quantile(datos_tarifas$tarifa, 0.25)
+      q75 <- quantile(datos_tarifas$tarifa, 0.75)
+      riq <- q75 - q25
+      cat("- **Rango central (P25-P75):** ", round(q25, 2), "‰ - ", round(q75, 2), "‰ (RIQ: ", round(riq, 2), "‰)\n")
+      cat("- **Concentración central:** ", round((riq / median(datos_tarifas$tarifa)) * 100, 1), "% de la mediana\n")
+      
+      # Detección de outliers
+      limite_inferior <- q25 - 1.5 * riq
+      limite_superior <- q75 + 1.5 * riq
+      outliers <- datos_tarifas$tarifa[datos_tarifas$tarifa < limite_inferior | datos_tarifas$tarifa > limite_superior]
+      
+      if (length(outliers) > 0) {
+        cat("- **⚠️ Valores atípicos detectados:** ", length(outliers), " tarifas fuera del rango normal\n")
+        cat("  - Tarifas extremas: ", paste(round(sort(outliers), 2), collapse = "‰, "), "‰\n")
+        cat("  - **Recomendación:** Revisar coherencia de estas tarifas excepcionales\n")
+      } else {
+        cat("- **✅ Sin valores atípicos:** Todas las tarifas están dentro del rango esperado\n")
+      }
+      
+    } else {
+      cat("No se encontraron datos de tarifas para este municipio.\n")
+    }
+    
+  }, error = function(e) {
+    cat("*No fue posible generar la distribución de tarifas para este municipio.*\n")
+    cat("*Motivo: Datos de transcripción no disponibles o incompletos.*\n")
+  })
+}
+```
+
+# Análisis de progresividad
+
+## Progresividad por avalúo
+
+```{r}
+#| echo: false
+#| results: asis
+#| fig-width: 10
+#| fig-height: 6
+
+# Verificar si existe la imagen ladder de avalúo
+img_avaluo <- paste0("img_estatutos/", params$cod_dane, "_ladder_avaluo.png")
+
+if (file.exists(img_avaluo)) {
+  cat("El análisis de progresividad por avalúo evalúa si las tarifas aumentan proporcionalmente con el valor del predio:\n\n")
+  cat("![Progresividad por avalúo](", img_avaluo, "){width=90%}\n\n")
+  cat("**Descripción:** Gráfico ladder que muestra la relación entre rangos de avalúo (en UVT) y las tarifas correspondientes en ", params$nombre, ".\n\n")
+  cat("**Interpretación:** Una tendencia ascendente consistente indica progresividad, donde predios de mayor valor pagan tarifas proporcionalmente más altas. Escalones horizontales indican tramos con tarifa fija.\n\n")
+} else {
+  # Generar gráfico dinámico desde los datos
+  cat("### Análisis de progresividad por avalúo (generado dinámicamente)\n\n")
+  
+  # Intentar cargar datos de transcripciones para análisis detallado
+  tryCatch({
+    bd_transcripciones <- lee_rds("ds_estatutos/BD_Transcripciones.rds")
+    
+    # Filtrar datos del municipio
+    datos_avaluo <- bd_transcripciones %>%
+      filter(codigo_dane == params$cod_dane) %>%
+      filter(!is.na(avaluo_desde) | !is.na(avaluo_hasta)) %>%
+      filter(!is.na(tarifa))
+    
+    if (nrow(datos_avaluo) > 0) {
+      library(ggplot2)
+      
+      # Preparar datos para gráfico
+      datos_plot <- datos_avaluo %>%
+        mutate(
+          avaluo_medio = case_when(
+            !is.na(avaluo_desde) & !is.na(avaluo_hasta) ~ (avaluo_desde + avaluo_hasta) / 2,
+            !is.na(avaluo_desde) ~ avaluo_desde,
+            !is.na(avaluo_hasta) ~ avaluo_hasta,
+            TRUE ~ NA_real_
+          ),
+          avaluo_desde = ifelse(is.na(avaluo_desde), 0, avaluo_desde),
+          avaluo_hasta = ifelse(is.na(avaluo_hasta), avaluo_medio * 2, avaluo_hasta)
+        ) %>%
+        filter(!is.na(avaluo_medio), !is.na(tarifa)) %>%
+        arrange(avaluo_medio)
+      
+      if (nrow(datos_plot) >= 2) {
+        # Crear gráfico ladder
+        p_avaluo <- ggplot(datos_plot, aes(x = avaluo_medio, y = tarifa)) +
+          geom_step(direction = "hv", color = "steelblue", size = 1.2) +
+          geom_point(color = "darkblue", size = 2) +
+          scale_x_continuous(
+            trans = "log10",
+            labels = scales::comma_format(scale = 1e-6, suffix = "M"),
+            name = "Avalúo (UVT, escala logarítmica)"
+          ) +
+          scale_y_continuous(
+            labels = scales::number_format(suffix = "‰"),
+            name = "Tarifa predial (por mil)"
+          ) +
+          labs(
+            title = paste("Progresividad por avalúo -", params$nombre),
+            subtitle = "Relación entre rangos de avalúo y tarifas prediales",
+            caption = "Fuente: Análisis de estatutos tributarios"
+          ) +
+          theme_minimal() +
+          theme(
+            plot.title = element_text(size = 14, face = "bold"),
+            plot.subtitle = element_text(size = 12),
+            axis.title = element_text(size = 11),
+            panel.grid.minor = element_blank()
+          )
+        
+        print(p_avaluo)
+        
+        # Análisis de progresividad
+        correlacion <- cor(datos_plot$avaluo_medio, datos_plot$tarifa, method = "spearman")
+        n_intervalos <- nrow(datos_plot)
+        incrementos_positivos <- sum(diff(datos_plot$tarifa[order(datos_plot$avaluo_medio)]) > 0)
+        prop_progresiva <- round(incrementos_positivos / (n_intervalos - 1) * 100, 1)
+        
+        cat("\n**Análisis estadístico:**\n")
+        cat("- **Número de intervalos analizados:** ", n_intervalos, "\n")
+        cat("- **Correlación avalúo-tarifa (Spearman):** ", round(correlacion, 3), "\n")
+        cat("- **Proporción de incrementos progresivos:** ", prop_progresiva, "%\n")
+        
+        if (correlacion > 0.7) {
+          cat("- **Interpretación:** Sistema altamente progresivo\n")
+        } else if (correlacion > 0.3) {
+          cat("- **Interpretación:** Sistema moderadamente progresivo\n")
+        } else if (correlacion > -0.3) {
+          cat("- **Interpretación:** Sistema con progresividad variable\n")
+        } else {
+          cat("- **Interpretación:** Sistema con tendencia regresiva\n")
+        }
+        
+      } else {
+        cat("Datos insuficientes para generar análisis de progresividad por avalúo.\n")
+      }
+      
+    } else {
+      cat("No se encontraron datos de avalúo para este municipio en los registros detallados.\n")
+    }
+    
+  }, error = function(e) {
+    cat("*No fue posible generar el análisis de progresividad por avalúo para este municipio.*\n")
+    cat("*Motivo: Datos de transcripción no disponibles o incompletos.*\n")
+  })
+}
+```
+
+## Progresividad por área
+
+```{r}
+#| echo: false
+#| results: asis
+#| fig-width: 10
+#| fig-height: 6
+
+# Verificar si existe la imagen ladder de área
+img_area <- paste0("img_estatutos/", params$cod_dane, "_ladder_area.png")
+
+if (file.exists(img_area)) {
+  cat("El análisis por área evalúa la progresividad basada en la superficie construida:\n\n")
+  cat("![Progresividad por área](", img_area, "){width=90%}\n\n")
+  cat("**Descripción:** Gráfico ladder que muestra la relación entre rangos de área construida (m²) y las tarifas prediales en ", params$nombre, ".\n\n")
+  cat("**Interpretación:** Permite evaluar si el municipio penaliza o incentiva predios de mayor tamaño. Una progresividad negativa podría indicar incentivos a la densificación.\n\n")
+} else {
+  # Generar gráfico dinámico desde los datos
+  cat("### Análisis de progresividad por área (generado dinámicamente)\n\n")
+  
+  tryCatch({
+    bd_transcripciones <- lee_rds("ds_estatutos/BD_Transcripciones.rds")
+    
+    # Filtrar datos del municipio con información de área
+    datos_area <- bd_transcripciones %>%
+      filter(codigo_dane == params$cod_dane) %>%
+      filter(!is.na(area_desde) | !is.na(area_hasta)) %>%
+      filter(!is.na(tarifa))
+    
+    if (nrow(datos_area) > 0) {
+      library(ggplot2)
+      
+      # Preparar datos para gráfico
+      datos_plot_area <- datos_area %>%
+        mutate(
+          area_media = case_when(
+            !is.na(area_desde) & !is.na(area_hasta) ~ (area_desde + area_hasta) / 2,
+            !is.na(area_desde) ~ area_desde,
+            !is.na(area_hasta) ~ area_hasta,
+            TRUE ~ NA_real_
+          ),
+          area_desde = ifelse(is.na(area_desde), 0, area_desde),
+          area_hasta = ifelse(is.na(area_hasta), area_media * 2, area_hasta)
+        ) %>%
+        filter(!is.na(area_media), !is.na(tarifa), area_media > 0) %>%
+        arrange(area_media)
+      
+      if (nrow(datos_plot_area) >= 2) {
+        # Crear gráfico ladder para área con mejoras visuales
+        p_area <- ggplot(datos_plot_area, aes(x = area_media, y = tarifa)) +
+          geom_step(direction = "hv", color = "darkgreen", size = 1.2, alpha = 0.8) +
+          geom_point(color = "darkgreen", size = 2.5, alpha = 0.9) +
+          geom_smooth(method = "loess", se = TRUE, color = "orange", alpha = 0.3, size = 0.8) +
+          scale_x_continuous(
+            trans = "log10",
+            labels = scales::comma_format(suffix = " m²"),
+            name = "Área construida (m², escala logarítmica)",
+            breaks = scales::trans_breaks("log10", function(x) 10^x),
+            minor_breaks = scales::trans_breaks("log10", function(x) 10^x, n = 10)
+          ) +
+          scale_y_continuous(
+            labels = scales::number_format(suffix = "‰"),
+            name = "Tarifa predial (por mil)"
+          ) +
+          labs(
+            title = paste("Progresividad por área construida -", params$nombre),
+            subtitle = "Línea verde: escalones tarifarios | Línea naranja: tendencia suavizada",
+            caption = "Fuente: Análisis de estatutos tributarios • Mayor área → ¿Mayor o menor tarifa?"
+          ) +
+          theme_minimal() +
+          theme(
+            plot.title = element_text(size = 14, face = "bold", color = "darkgreen"),
+            plot.subtitle = element_text(size = 11, color = "gray40"),
+            plot.caption = element_text(size = 9, color = "gray50"),
+            axis.title = element_text(size = 11),
+            panel.grid.minor = element_blank(),
+            panel.grid.major = element_line(color = "gray90", size = 0.5)
+          )
+        
+        print(p_area)
+        
+        # Análisis de progresividad por área mejorado
+        correlacion_area <- cor(datos_plot_area$area_media, datos_plot_area$tarifa, method = "spearman")
+        n_intervalos_area <- nrow(datos_plot_area)
+        tarifa_ordenada <- datos_plot_area$tarifa[order(datos_plot_area$area_media)]
+        incrementos_positivos_area <- sum(diff(tarifa_ordenada) > 0)
+        decrementos_area <- sum(diff(tarifa_ordenada) < 0)
+        prop_progresiva_area <- round(incrementos_positivos_area / (n_intervalos_area - 1) * 100, 1)
+        
+        # Calcular elasticidad área-tarifa
+        if (length(datos_plot_area$area_media) > 2) {
+          modelo_area <- lm(log(tarifa) ~ log(area_media), data = datos_plot_area)
+          elasticidad_area <- round(coef(modelo_area)[2], 3)
+        } else {
+          elasticidad_area <- NA
+        }
+        
+        cat("\n**Análisis estadístico avanzado:**\n")
+        cat("- **Número de intervalos analizados:** ", n_intervalos_area, "\n")
+        cat("- **Correlación área-tarifa (Spearman):** ", round(correlacion_area, 3), "\n")
+        cat("- **Proporción de incrementos progresivos:** ", prop_progresiva_area, "%\n")
+        cat("- **Incrementos vs. decrementos:** ", incrementos_positivos_area, " vs ", decrementos_area, "\n")
+        if (!is.na(elasticidad_area)) {
+          cat("- **Elasticidad área-tarifa:** ", elasticidad_area, "\n")
+        }
+        
+        if (correlacion_area > 0.3) {
+          cat("- **Interpretación:** Las tarifas tienden a aumentar con el área (penalización a predios grandes)\n")
+        } else if (correlacion_area < -0.3) {
+          cat("- **Interpretación:** Las tarifas tienden a disminuir con el área (incentivo a predios grandes)\n")
+        } else {
+          cat("- **Interpretación:** Las tarifas no presentan una relación clara con el área\n")
+        }
+        
+        # Comparación con avalúo (si disponible)
+        datos_avaluo_comp <- bd_transcripciones %>%
+          filter(codigo_dane == params$cod_dane) %>%
+          filter(!is.na(avaluo_desde) | !is.na(avaluo_hasta)) %>%
+          filter(!is.na(tarifa))
+        
+        if (nrow(datos_avaluo_comp) > 1) {
+          datos_avaluo_comp <- datos_avaluo_comp %>%
+            mutate(
+              avaluo_medio = case_when(
+                !is.na(avaluo_desde) & !is.na(avaluo_hasta) ~ (avaluo_desde + avaluo_hasta) / 2,
+                !is.na(avaluo_desde) ~ avaluo_desde,
+                !is.na(avaluo_hasta) ~ avaluo_hasta,
+                TRUE ~ NA_real_
+              )
+            ) %>%
+            filter(!is.na(avaluo_medio))
+          
+          if (nrow(datos_avaluo_comp) > 1) {
+            correlacion_avaluo_comp <- cor(datos_avaluo_comp$avaluo_medio, datos_avaluo_comp$tarifa, method = "spearman")
+            cat("- **Comparación:** Correlación avalúo-tarifa: ", round(correlacion_avaluo_comp, 3), 
+                " vs área-tarifa: ", round(correlacion_area, 3), "\n")
+            
+            if (abs(correlacion_area) > abs(correlacion_avaluo_comp)) {
+              cat("- **Observación:** El área parece ser un criterio más determinante que el avalúo\n")
+            } else {
+              cat("- **Observación:** El avalúo parece ser un criterio más determinante que el área\n")
+            }
+          }
+        }
+        
+      } else {
+        cat("Datos insuficientes para generar análisis de progresividad por área.\n")
+      }
+      
+    } else {
+      cat("No se encontraron datos de área para este municipio en los registros detallados.\n")
+    }
+    
+  }, error = function(e) {
+    cat("*No fue posible generar el análisis de progresividad por área para este municipio.*\n")
+    cat("*Motivo: Datos de transcripción no disponibles o incompletos.*\n")
+  })
+}
+```
+
+# Contexto departamental
+
+```{r}
+#| echo: false
+#| results: asis
+
+cat("## Posición relativa en Antioquia\n\n")
+
+# Generar estadísticas comparativas
+if (nrow(datos_municipio) > 0) {
+  # Ranking por número de reglas
+  ranking_reglas <- bd_estatutos %>%
+    count(codigo_dane, mpio, sort = TRUE) %>%
+    mutate(ranking = row_number()) %>%
+    filter(codigo_dane == params$cod_dane)
+  
+  if (nrow(ranking_reglas) > 0) {
+    total_municipios <- bd_estatutos %>% distinct(codigo_dane) %>% nrow()
+    cat("- **Ranking por complejidad normativa:** ", ranking_reglas$ranking, " de ", total_municipios, " municipios\n")
+    cat("- **Número de reglas:** ", ranking_reglas$n, "\n")
+    
+    # Clasificación
+    if (ranking_reglas$ranking <= total_municipios * 0.25) {
+      cat("- **Clasificación:** Alta complejidad normativa (cuartil superior)\n")
+    } else if (ranking_reglas$ranking <= total_municipios * 0.5) {
+      cat("- **Clasificación:** Complejidad normativa medio-alta\n")
+    } else if (ranking_reglas$ranking <= total_municipios * 0.75) {
+      cat("- **Clasificación:** Complejidad normativa medio-baja\n")
+    } else {
+      cat("- **Clasificación:** Baja complejidad normativa (cuartil inferior)\n")
+    }
+  }
+}
+
+cat("\n")
+
+# Enlaces a visualizaciones generales si existen
+img_generales <- c(
+  "tipologia_agregada.png" = "Tipologías agregadas del departamento",
+  "tipologia_todos.png" = "Complejidad normativa por municipio",
+  "map_rules_count.png" = "Mapa de complejidad normativa",
+  "tarifas_mapa_urbano.png" = "Mapa de tarifas urbanas",
+  "tarifas_mapa_rural.png" = "Mapa de tarifas rurales"
+)
+
+cat("## Visualizaciones del contexto departamental\n\n")
+for (i in seq_along(img_generales)) {
+  img_path <- paste0("img_estatutos/", names(img_generales)[i])
+  if (file.exists(img_path)) {
+    cat("- [", img_generales[i], "](", img_path, ")\n")
+  }
+}
+```
+
+# Documentos de referencia
+
+```{r}
+#| echo: false
+#| results: asis
+
+cat("## Estatutos y documentos fuente\n\n")
+
+if (nrow(freq_cat) > 0 && "enlace_pdf" %in% names(freq_cat)) {
+  enlaces_disponibles <- freq_cat %>% 
+    filter(enlace_pdf != "No disponible") %>%
+    nrow()
+  
+  if (enlaces_disponibles > 0) {
+    cat("Se han identificado ", enlaces_disponibles, " documentos fuente para este municipio. ")
+    cat("Los enlaces de descarga están disponibles en la tabla de estatutos al inicio de este documento.\n\n")
+  } else {
+    cat("Los documentos fuente están en proceso de digitalización.\n\n")
+  }
+} else {
+  cat("Los documentos fuente están en proceso de digitalización.\n\n")
+}
+
+cat("## Metodología del análisis\n\n")
+cat("Este análisis forma parte del proyecto de sistematización de estatutos tributarios de Antioquia, que incluye:\n\n")
+cat("1. **Transcripción normativa:** Conversión de estatutos físicos a formato digital estructurado\n")
+cat("2. **Categorización:** Identificación de criterios tarifarios (avalúo, área, destino, estrato)\n")
+cat("3. **Análisis de progresividad:** Evaluación de la coherencia y equidad del sistema tarifario\n")
+cat("4. **Comparación intermunicipal:** Benchmarking con otros municipios del departamento\n\n")
+cat("Para más información sobre la metodología completa, consulte el [análisis departamental](estatuto_index.html).\n")
+```
+
+# Resumen visual integrado
+
+```{r}
+#| echo: false
+#| results: asis
+#| fig-width: 12
+#| fig-height: 8
+
+# Solo generar si hay datos de transcripciones
+tryCatch({
+  bd_transcripciones <- lee_rds("ds_estatutos/BD_Transcripciones.rds")
+  datos_resumen <- bd_transcripciones %>%
+    filter(codigo_dane == params$cod_dane)
+  
+  if (nrow(datos_resumen) > 0) {
+    cat("## Dashboard de análisis tributario\n\n")
+    cat("Este resumen integra los principales hallazgos del análisis tributario de ", params$nombre, ":\n\n")
+    
+    # Crear un layout de múltiples gráficos si hay suficientes datos
+    tryCatch({
+      library(gridExtra)
+      library(grid)
+      use_grid <- TRUE
+    }, error = function(e) {
+      use_grid <- FALSE
+    })
+    
+    plots_list <- list()
+    
+    # 1. Gráfico de tarifas mejorado con box plot y violin plot
+    datos_tarifas_res <- datos_resumen %>% filter(!is.na(tarifa), tarifa > 0)
+    if (nrow(datos_tarifas_res) > 1) {
+      p1 <- ggplot(datos_tarifas_res, aes(x = "", y = tarifa)) +
+        geom_violin(fill = "lightblue", alpha = 0.5, color = "blue") +
+        geom_boxplot(fill = "lightblue", alpha = 0.8, width = 0.3, 
+                     outlier.color = "red", outlier.size = 2) +
+        geom_jitter(width = 0.1, alpha = 0.6, color = "darkblue", size = 1.5) +
+        stat_summary(fun = mean, geom = "point", shape = 18, size = 4, color = "orange") +
+        labs(
+          title = "Distribución de tarifas", 
+          subtitle = paste("🔵 Datos | 📦 Cuartiles | 🟠 Promedio | 🔴 Outliers"),
+          y = "Tarifa (‰)", 
+          x = ""
+        ) +
+        theme_minimal() +
+        theme(
+          plot.title = element_text(size = 12, face = "bold"),
+          plot.subtitle = element_text(size = 9, color = "gray50"),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank()
+        )
+      plots_list <- append(plots_list, list(p1))
+    }
+    
+    # 2. Gráfico de progresividad por avalúo si hay datos
+    datos_avaluo_res <- datos_resumen %>%
+      filter(!is.na(avaluo_desde) | !is.na(avaluo_hasta)) %>%
+      filter(!is.na(tarifa)) %>%
+      mutate(
+        avaluo_medio = case_when(
+          !is.na(avaluo_desde) & !is.na(avaluo_hasta) ~ (avaluo_desde + avaluo_hasta) / 2,
+          !is.na(avaluo_desde) ~ avaluo_desde,
+          !is.na(avaluo_hasta) ~ avaluo_hasta,
+          TRUE ~ NA_real_
+        )
+      ) %>%
+      filter(!is.na(avaluo_medio)) %>%
+      arrange(avaluo_medio)
+    
+    if (nrow(datos_avaluo_res) >= 3) {
+      # Calcular R² para mostrar calidad del ajuste
+      modelo_temp <- lm(tarifa ~ log10(avaluo_medio), data = datos_avaluo_res)
+      r_squared <- round(summary(modelo_temp)$r.squared, 3)
+      
+      p2 <- ggplot(datos_avaluo_res, aes(x = avaluo_medio, y = tarifa)) +
+        geom_point(aes(size = avaluo_medio), color = "darkblue", alpha = 0.7) +
+        geom_smooth(method = "lm", se = TRUE, color = "red", linetype = "dashed", alpha = 0.3) +
+        geom_smooth(method = "loess", se = FALSE, color = "green", size = 1, alpha = 0.8) +
+        scale_x_continuous(
+          trans = "log10", 
+          labels = scales::comma_format(scale = 1e-6, suffix = "M"),
+          breaks = scales::trans_breaks("log10", function(x) 10^x, n = 4)
+        ) +
+        scale_size_continuous(guide = "none", range = c(1, 4)) +
+        labs(
+          title = "Progresividad por avalúo", 
+          subtitle = paste("🔴 Tendencia lineal (R²=", r_squared, ") | 🟢 Tendencia suavizada"),
+          x = "Avalúo (UVT)", 
+          y = "Tarifa (‰)"
+        ) +
+        theme_minimal() +
+        theme(
+          plot.title = element_text(size = 12, face = "bold"),
+          plot.subtitle = element_text(size = 9, color = "gray50")
+        )
+      plots_list <- append(plots_list, list(p2))
+    }
+    
+    # 3. Gráfico de criterios utilizados
+    criterios_summary <- datos_resumen %>%
+      summarise(
+        Avalúo = sum(!is.na(avaluo_desde) | !is.na(avaluo_hasta)),
+        Área = sum(!is.na(area_desde) | !is.na(area_hasta)),
+        Destino = sum(!is.na(destino) & destino != "", na.rm = TRUE),
+        Estrato = sum(!is.na(estrato) & estrato != "", na.rm = TRUE),
+        Zona = sum(!is.na(zona) & zona != "", na.rm = TRUE)
+      ) %>%
+      tidyr::pivot_longer(everything(), names_to = "Criterio", values_to = "Frecuencia") %>%
+      filter(Frecuencia > 0)
+    
+    if (nrow(criterios_summary) > 0) {
+      p3 <- ggplot(criterios_summary, aes(x = reorder(Criterio, Frecuencia), y = Frecuencia)) +
+        geom_col(fill = "darkgreen", alpha = 0.7) +
+        coord_flip() +
+        labs(title = "Criterios utilizados", x = "Criterio", y = "Número de reglas") +
+        theme_minimal() +
+        theme(plot.title = element_text(size = 12, face = "bold"))
+      plots_list <- append(plots_list, list(p3))
+    }
+    
+    # Mostrar gráficos
+    if (length(plots_list) > 0) {
+      if (use_grid && length(plots_list) > 1) {
+        # Usar grid si está disponible
+        if (length(plots_list) == 2) {
+          grid.arrange(grobs = plots_list, ncol = 2)
+        } else if (length(plots_list) >= 3) {
+          grid.arrange(grobs = plots_list, ncol = 2, nrow = 2)
+        }
+      } else {
+        # Mostrar gráficos individualmente
+        for (i in seq_along(plots_list)) {
+          print(plots_list[[i]])
+        }
+      }
+      
+      cat("\n**🎯 Interpretación integral del dashboard:**\n")
+      cat("Este dashboard proporciona una **visión 360° del sistema tributario** de ", params$nombre, ", integrando múltiples dimensiones analíticas:\n\n")
+      
+      # Análisis integrado más sofisticado
+      cat("**📊 Resumen ejecutivo:**\n")
+      total_reglas <- nrow(datos_resumen)
+      complejidad_score <- 0
+      
+      # Calcular score de complejidad
+      if (nrow(criterios_summary) > 0) {
+        complejidad_score <- complejidad_score + (nrow(criterios_summary) * 20)
+      }
+      if (nrow(datos_tarifas_res) > 0) {
+        n_tarifas_unicas <- length(unique(datos_tarifas_res$tarifa))
+        complejidad_score <- complejidad_score + min(n_tarifas_unicas * 5, 50)
+        cv_tarifas <- sd(datos_tarifas_res$tarifa) / mean(datos_tarifas_res$tarifa)
+        if (cv_tarifas > 0.5) complejidad_score <- complejidad_score + 30
+      }
+      
+      cat("- **📈 Complejidad normativa:** ")
+      if (complejidad_score >= 80) {
+        cat("ALTA (score: ", complejidad_score, ") - Sistema muy sofisticado\n")
+      } else if (complejidad_score >= 50) {
+        cat("MODERADA (score: ", complejidad_score, ") - Sistema equilibrado\n")
+      } else {
+        cat("BAJA (score: ", complejidad_score, ") - Sistema simplificado\n")
+      }
+      
+      cat("- **🔢 Total de reglas analizadas:** ", total_reglas, "\n")
+      
+      if (nrow(datos_tarifas_res) > 0) {
+        tarifa_promedio <- round(mean(datos_tarifas_res$tarifa), 2)
+        tarifa_mediana <- round(median(datos_tarifas_res$tarifa), 2)
+        dispersion <- round(sd(datos_tarifas_res$tarifa) / mean(datos_tarifas_res$tarifa), 3)
+        
+        cat("- **💰 Estructura tarifaria:**\n")
+        cat("  - Tarifas únicas: ", length(unique(datos_tarifas_res$tarifa)), "\n")
+        cat("  - Tarifa típica: ", tarifa_mediana, "‰ (mediana)\n")
+        cat("  - Rango: ", min(datos_tarifas_res$tarifa), "‰ - ", max(datos_tarifas_res$tarifa), "‰\n")
+        cat("  - Uniformidad: ", if(dispersion < 0.3) "Alta" else if(dispersion < 0.7) "Moderada" else "Baja", " (CV: ", dispersion, ")\n")
+      }
+      
+      if (nrow(criterios_summary) > 0) {
+        criterio_principal <- criterios_summary$Criterio[which.max(criterios_summary$Frecuencia)]
+        cat("- **🎯 Criterios tarifarios activos:** ", nrow(criterios_summary), "\n")
+        cat("  - Criterio principal: ", criterio_principal, " (", max(criterios_summary$Frecuencia), " reglas)\n")
+      }
+      
+      # Análisis de progresividad si hay datos de avalúo
+      if (nrow(datos_avaluo_res) >= 3) {
+        cor_avaluo <- cor(datos_avaluo_res$avaluo_medio, datos_avaluo_res$tarifa, method = "spearman")
+        cat("- **📈 Progresividad por avalúo:** ")
+        if (cor_avaluo > 0.7) {
+          cat("ALTA (r=", round(cor_avaluo, 2), ") - Sistema muy progresivo\n")
+        } else if (cor_avaluo > 0.3) {
+          cat("MODERADA (r=", round(cor_avaluo, 2), ") - Progresividad parcial\n")
+        } else if (cor_avaluo > -0.3) {
+          cat("VARIABLE (r=", round(cor_avaluo, 2), ") - Sin patrón claro\n")
+        } else {
+          cat("REGRESIVA (r=", round(cor_avaluo, 2), ") - Tarifa decrece con avalúo\n")
+        }
+      }
+      
+      cat("\n**🔍 Recomendaciones basadas en el análisis:**\n")
+      if (complejidad_score >= 80) {
+        cat("- Considerar **simplificación** del esquema tarifario\n")
+        cat("- Implementar **herramientas digitales** para facilitar aplicación\n")
+      } else if (complejidad_score < 30) {
+        cat("- Evaluar si el esquema actual **captura adecuadamente** la capacidad contributiva\n")
+        cat("- Considerar mayor **diferenciación** tarifaria si es viable\n")
+      } else {
+        cat("- Mantener **equilibrio actual** entre simplicidad y equidad\n")
+        cat("- Realizar **revisiones periódicas** del esquema\n")
+      }
+      
+      if (nrow(datos_tarifas_res) > 0 && sd(datos_tarifas_res$tarifa) / mean(datos_tarifas_res$tarifa) > 1) {
+        cat("- **Alta dispersión** detectada: revisar coherencia entre tarifas\n")
+      }
+    }
+    
+  } else {
+    cat("No hay suficientes datos para generar el dashboard visual.\n")
+  }
+  
+}, error = function(e) {
+  cat("*Dashboard visual no disponible para este municipio.*\n")
+})
+```
+
+# Estadísticas avanzadas del municipio
+
+```{r}
+#| echo: false
+#| results: asis
+
+if (nrow(datos_municipio) > 0) {
+  cat("## Análisis temporal de la normativa\n\n")
+  
+  # Análisis temporal si hay datos de año
+  if ("anio" %in% names(datos_municipio) && any(!is.na(datos_municipio$anio))) {
+    # Evolución temporal
+    evolucion <- datos_municipio %>%
+      filter(!is.na(anio)) %>%
+      count(anio, sort = TRUE)
+    
+    if (nrow(evolucion) > 1) {
+      cat("### Evolución de la actividad normativa\n\n")
+      anos_activos <- evolucion$anio
+      cat("- **Años con mayor actividad normativa:** ", paste(head(anos_activos, 3), collapse = ", "), "\n")
+      cat("- **Período de mayor estabilidad:** ")
+      
+      # Buscar períodos sin cambios
+      gaps <- diff(anos_activos)
+      if (any(gaps > 1)) {
+        cat("Se observan períodos de estabilidad normativa entre algunos años\n")
+      } else {
+        cat("Actividad normativa continua en el período analizado\n")
+      }
+      
+      # Tabla de evolución
+      cat("\n")
+      kable(evolucion, 
+            col.names = c("Año", "Número de registros"),
+            caption = "Evolución temporal de la normativa tributaria")
+      cat("\n")
+    }
+  }
+  
+  # Análisis de tipos de normativa
+  if ("tipo" %in% names(datos_municipio) && any(!is.na(datos_municipio$tipo))) {
+    cat("## Tipología normativa\n\n")
+    
+    tipos_freq <- datos_municipio %>%
+      filter(!is.na(tipo)) %>%
+      count(tipo, sort = TRUE)
+    
+    if (nrow(tipos_freq) > 0) {
+      cat("### Distribución por tipo de normativa\n\n")
+      kable(tipos_freq, 
+            col.names = c("Tipo de normativa", "Frecuencia"),
+            caption = "Tipos de instrumentos normativos utilizados")
+      cat("\n")
+      
+      tipo_principal <- tipos_freq$tipo[1]
+      freq_principal <- tipos_freq$n[1]
+      porcentaje_principal <- round((freq_principal / nrow(datos_municipio)) * 100, 1)
+      
+      cat("- **Instrumento normativo predominante:** ", tipo_principal, 
+          " (", freq_principal, " registros, ", porcentaje_principal, "%)\n")
+    }
+  }
+  
+  # Comparación con promedios departamentales
+  cat("## Comparación departamental\n\n")
+  
+  # Estadísticas departamentales
+  stats_dpto <- bd_estatutos %>%
+    group_by(codigo_dane) %>%
+    summarise(
+      total_registros = n(),
+      .groups = 'drop'
+    )
+  
+  promedio_dpto <- mean(stats_dpto$total_registros, na.rm = TRUE)
+  mediana_dpto <- median(stats_dpto$total_registros, na.rm = TRUE)
+  
+  registros_municipio <- nrow(datos_municipio)
+  
+  cat("- **Registros de este municipio:** ", registros_municipio, "\n")
+  cat("- **Promedio departamental:** ", round(promedio_dpto, 1), "\n")
+  cat("- **Mediana departamental:** ", round(mediana_dpto, 1), "\n")
+  
+  # Clasificación relativa
+  if (registros_municipio > promedio_dpto) {
+    cat("- **Clasificación:** Por encima del promedio departamental (", 
+        round((registros_municipio - promedio_dpto) / promedio_dpto * 100, 1), 
+        "% más registros)\n")
+  } else {
+    cat("- **Clasificación:** Por debajo del promedio departamental (", 
+        round((promedio_dpto - registros_municipio) / promedio_dpto * 100, 1), 
+        "% menos registros)\n")
+  }
+  
+  # Percentil
+  percentil <- round(sum(stats_dpto$total_registros <= registros_municipio) / nrow(stats_dpto) * 100, 1)
+  cat("- **Percentil departamental:** ", percentil, "% (", 
+      round(100 - percentil, 1), "% de municipios tienen más registros)\n")
+
+} else {
+  cat("No hay datos suficientes para generar estadísticas avanzadas.\n")
+}
+```
+
+# Recomendaciones específicas
+
+```{r}
+#| echo: false
+#| results: asis
+
+if (nrow(datos_municipio) > 0) {
+  cat("## Recomendaciones de política tributaria\n\n")
+  
+  # Generar recomendaciones basadas en las características del municipio
+  registros_municipio <- nrow(datos_municipio)
+  
+  # Obtener estadísticas para comparación
+  stats_dpto <- bd_estatutos %>%
+    group_by(codigo_dane) %>%
+    summarise(total_registros = n(), .groups = 'drop')
+  
+  promedio_dpto <- mean(stats_dpto$total_registros, na.rm = TRUE)
+  cuartil_superior <- quantile(stats_dpto$total_registros, 0.75, na.rm = TRUE)
+  cuartil_inferior <- quantile(stats_dpto$total_registros, 0.25, na.rm = TRUE)
+  
+  cat("Basándose en el análisis comparativo, se sugieren las siguientes recomendaciones:\n\n")
+  
+  if (registros_municipio > cuartil_superior) {
+    cat("### Simplificación normativa (Alta complejidad)\n\n")
+    cat("- **Revisión integral:** Considerar la consolidación de reglas similares para reducir complejidad administrativa\n")
+    cat("- **Digitalización:** Implementar herramientas digitales para facilitar el cálculo y aplicación de tarifas\n")
+    cat("- **Capacitación:** Fortalecer las competencias técnicas del personal tributario\n")
+    cat("- **Comunicación:** Desarrollar material didáctico para facilitar el entendimiento ciudadano\n\n")
+  } else if (registros_municipio < cuartil_inferior) {
+    cat("### Optimización del potencial tributario (Baja complejidad)\n\n")
+    cat("- **Análisis de brechas:** Evaluar si la simplicidad actual captura adecuadamente la capacidad contributiva\n")
+    cat("- **Benchmarking:** Considerar mejores prácticas de municipios similares\n")
+    cat("- **Progresividad:** Evaluar la implementación de esquemas más progresivos si es técnicamente viable\n")
+    cat("- **Actualización:** Revisar la vigencia y pertinencia de las tarifas actuales\n\n")
+  } else {
+    cat("### Optimización del esquema actual (Complejidad media)\n\n")
+    cat("- **Eficiencia:** Evaluar la efectividad del esquema actual en términos de recaudo y equidad\n")
+    cat("- **Actualización periódica:** Establecer cronogramas regulares de revisión normativa\n")
+    cat("- **Monitoreo:** Implementar indicadores de seguimiento a la aplicación de tarifas\n")
+    cat("- **Participación:** Involucrar a la ciudadanía en procesos de actualización normativa\n\n")
+  }
+  
+  cat("### Recomendaciones generales\n\n")
+  cat("- **Transparencia:** Publicar de manera clara y accesible todas las tarifas vigentes\n")
+  cat("- **Tecnología:** Aprovechar herramientas digitales para mejorar la gestión tributaria\n")
+  cat("- **Equidad:** Evaluar periódicamente el impacto distributivo del sistema tarifario\n")
+  cat("- **Coordinación:** Mantener coherencia con las políticas tributarias departamentales\n\n")
+  
+} else {
+  cat("Para generar recomendaciones específicas se requieren datos adicionales del municipio.\n")
+}
+```
