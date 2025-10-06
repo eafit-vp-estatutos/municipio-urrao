@@ -1,0 +1,68 @@
+project:
+  type: website
+  title: "Urrao"
+  output-dir: docs
+  resources:
+    - img/
+    - site-footer-logo.css
+    - mathjax-config.html
+    - references-target-blank.html
+
+  
+website:
+  title: "Estatutos Óptimos - Urrao"
+  page-navigation: true
+  search:
+    location: navbar
+    type: overlay
+  page-footer:
+    left: "© 2025 Centro Valor Público (Universidad EAFIT)"
+    right: |
+      <a href="https://www.eafit.edu.co/centros-estudio-incidencia/valor-publico" target="_blank" rel="noopener">
+        <img src="/img/logo-eafit.png" alt="Universidad EAFIT" class="footer-logo">
+      </a>
+  
+  navbar:
+    tools:
+      - icon: house
+        href: https://www.jcmunozmora.co/
+
+    left:
+      - href: index.qmd
+        text: Inicio
+      - text: Análisis
+        menu:
+          - href: analisis_estatutos.qmd
+            text: Estatuto Actual
+          - href: analisis_r1.qmd
+            text: Catastral (R1)
+          - href: analisis_uso.qmd
+            text: Uso del suelo
+      - text: Estatuto Óptimo
+        menu:
+          - href: optimo_metodologia.qmd
+            text: Metodología
+          - href: optimo_analisis.qmd
+            text: Escenarios
+          - href: optimo_propuesta.qmd
+            text: Propuesta estatuto
+      - href: autores_about.qmd
+        text: Autores
+        
+  sidebar: false
+
+format:
+  html:
+    theme: [cosmo]
+    css: styles.css
+    toc: true
+    toc-location: right
+    code-fold: true
+
+  revealjs:
+    theme: simple
+    transition: fade
+    slide-number: true
+    
+execute:
+  freeze: auto
