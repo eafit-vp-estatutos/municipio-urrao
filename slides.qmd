@@ -1,0 +1,22 @@
+---
+title: "Presentación Urrao"
+format:
+  revealjs:
+    theme: simple
+    transition: fade
+    slide-number: true
+---
+
+# Bienvenidos a Urrao
+
+Proyecto 
+
+Gobernación de Antioquia - Centro Valor Público
+
+---
+
+## Agendal {background-image="img/gob_1.png" background-size="cover" background-opacity="0.8"}
+
+1. Contexto
+2. Hallazgos
+3. Recomendaciones
