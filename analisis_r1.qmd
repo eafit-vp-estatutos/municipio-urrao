@@ -1,0 +1,50 @@
+---
+title: "Información catastral de Urrao"
+format: 
+  html:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    theme: cosmo
+    smooth-scroll: true
+execute:
+  echo: false
+  warning: false
+  message: false
+params:
+  cod_dane: "05847"
+  nombre: "Urrao"
+lang: es
+---
+
+A continuación se presenta las principales tendencias de las variables catastrales para el municipio de Urrao de 2020 a 2025.
+
+Para ver más análisis agregados y los detalles metodológicos puede visitar este enlace [(ir)](https://jcmunozmora.github.io/estatutos_r1_pro/).
+
+
+# Evolución de las áreas catastrales
+
+![](img_r1/serie_area.png)
+![](img_r1/serie_area_construida.png)
+![](img_r1/hist_area.png)
+![](img_r1/box_area.png)
+
+# Evolución de las áreas catastrales
+
+![](img_r1/serie_predios.png)
+
+# Evolución de los avalúos
+
+![](img_r1/serie_avaluo.png)
+![](img_r1/hist_avaluo.png)
+![](img_r1/box_avaluo.png)
+
+# Dinámicas de predios 
+
+Con el fin
+    - *P1* se refieren a predios que han estado presentes desde la vigencia 2024 a 2025
+    - *P2* son predios nuevos que fueron ingresados durante la última actualización
+
+![](img_r1/din_tipo_predio.png)
+![](img_r1/din_tipo_destino.png)
+
