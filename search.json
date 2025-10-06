@@ -1,0 +1,121 @@
+[
+  {
+    "objectID": "autores_about.html",
+    "href": "autores_about.html",
+    "title": "Autores",
+    "section": "",
+    "text": "Equipo Valor Público — EAFIT\nEste sitio presenta a los autores y sus roles."
+  },
+  {
+    "objectID": "autores_about.html#contribuciones-credit",
+    "href": "autores_about.html#contribuciones-credit",
+    "title": "Autores",
+    "section": "Contribuciones (CRediT)",
+    "text": "Contribuciones (CRediT)\n\nUn ✓ indica responsabilidad principal; un • contribución de apoyo; - no aplica.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nRol (CRediT)\nJuan Carlos\nMonica\nLaura\nEugenio\nYeison\nCarolina\nGuillermo\nDaniel\nHarold\n\n\n\n\nConceptualización\n✓\n✓\n✓\n-\n-\n✓\n✓\n✓\n✓\n\n\nCuraduría de datos\n✓\n✓\n-\n✓\n✓\n-\n•\n-\n-\n\n\nMetodología\n✓\n✓\n-\n-\n•\n-\n✓\n-\n-\n\n\nSoftware / reproducibilidad\n✓\n✓\n-\n-\n•\n-\n•\n-\n-\n\n\nValidación\n✓\n✓\n✓\n✓\n✓\n✓\n✓\n✓\n✓\n\n\nAnálisis formal\n✓\n✓\n✓\n✓\n✓\n✓\n✓\n✓\n✓\n\n\nVisualización\n✓\n✓\n-\n✓\n✓\n✓\n•\n-\n-\n\n\nRedacción – borrador original\n✓\n✓\n-\n-\n•\n•\n•\n-\n-\n\n\nRedacción – revisión y edición\n✓\n✓\n-\n-\n•\n•\n•\n-\n-\n\n\nAdministración del proyecto\n✓\n✓\n-\n-\n•\n•\n•\n-\n-\n\n\nSupervisión\n✓\n•\n-\n-\n•\n•\n•\n-\n-"
+  },
+  {
+    "objectID": "analisis_r1.html",
+    "href": "analisis_r1.html",
+    "title": "Información catastral de Urrao",
+    "section": "",
+    "text": "A continuación se presenta las principales tendencias de las variables catastrales para el municipio de Urrao de 2020 a 2025.\nPara ver más análisis agregados y los detalles metodológicos puede visitar este enlace (ir).\n\n1 Evolución de las áreas catastrales\n   \n\n\n2 Evolución de las áreas catastrales\n\n\n\n3 Evolución de los avalúos\n  \n\n\n4 Dinámicas de predios\nCon el fin - P1 se refieren a predios que han estado presentes desde la vigencia 2024 a 2025 - P2 son predios nuevos que fueron ingresados durante la última actualización"
+  },
+  {
+    "objectID": "slides.html#agendal",
+    "href": "slides.html#agendal",
+    "title": "Presentación Urrao",
+    "section": "Agendal",
+    "text": "Agendal\n\nContexto\nHallazgos\nRecomendaciones"
+  },
+  {
+    "objectID": "analisis_estatutos.html",
+    "href": "analisis_estatutos.html",
+    "title": "Análisis estatuto de Urrao",
+    "section": "",
+    "text": "Este proyecto presenta un análisis exhaustivo de los estatutos tributarios del municipio de Para el análisis del municipio de , enfocándose específicamente en la estructura del impuesto predial. El estatuto fue acompañado de un análisis jurídico y de contenido detallado del capítulo de impuestos prediales contenido en sus estatutos de rentas.\nPara el análisis del municipio se tuvieron en cuenta los siguientes estatutos y modificaciones:\nEstatutos Usados para el Estudio\n\n\n\n\n\n\n\n\n\n\nmpio\nanio\ntipo\nnumero\nobservaciones\nenlace_pdf\n\n\n\n\nURRAO\n2020\nESTATUTO\n26\nNA\nNo disponible\n\n\nURRAO\n2021\nMODIFICACIÓN\n22\nModifica la clasificación de destinos económicos\nNo disponible\nPara ver más análisis agregados y los detalles metodológicos puede visitar este enlace (ir)."
+  },
+  {
+    "objectID": "analisis_estatutos.html#combinaciones-de-criterios-tarifarios",
+    "href": "analisis_estatutos.html#combinaciones-de-criterios-tarifarios",
+    "title": "Análisis estatuto de Urrao",
+    "section": "2.1 Combinaciones de criterios tarifarios",
+    "text": "2.1 Combinaciones de criterios tarifarios\nEste gráfico muestra las diferentes combinaciones de criterios utilizados en la estructura tarifaria del municipio:\n\n\n\nCombinaciones de criterios tarifarios\n\n\nDescripción: Visualización de las combinaciones de criterios (avalúo, área, destino, estrato, etc.) utilizadas para determinar las tarifas prediales en Urrao .\nInterpretación: Cada combinación representa una regla específica del estatuto tributario. Mayor número de combinaciones indica mayor complejidad normativa."
+  },
+  {
+    "objectID": "analisis_estatutos.html#distribución-de-tarifas",
+    "href": "analisis_estatutos.html#distribución-de-tarifas",
+    "title": "Análisis estatuto de Urrao",
+    "section": "2.2 Distribución de tarifas",
+    "text": "2.2 Distribución de tarifas\nLa distribución de tarifas muestra el rango y frecuencia de las diferentes tarifas prediales establecidas:\n\n\n\nDistribución de tarifas prediales\n\n\nDescripción: Histograma que muestra la distribución de las tarifas prediales por mil (‰) establecidas en el estatuto de Urrao .\nInterpretación: La forma de la distribución indica si el municipio tiende hacia tarifas uniformes (distribución concentrada) o hacia un esquema más diversificado (distribución dispersa)."
+  },
+  {
+    "objectID": "analisis_estatutos.html#progresividad-por-avalúo",
+    "href": "analisis_estatutos.html#progresividad-por-avalúo",
+    "title": "Análisis estatuto de Urrao",
+    "section": "3.1 Progresividad por avalúo",
+    "text": "3.1 Progresividad por avalúo\nEl análisis de progresividad por avalúo evalúa si las tarifas aumentan proporcionalmente con el valor del predio:\n\n\n\nProgresividad por avalúo\n\n\nDescripción: Gráfico ladder que muestra la relación entre rangos de avalúo (en UVT) y las tarifas correspondientes en Urrao .\nInterpretación: Una tendencia ascendente consistente indica progresividad, donde predios de mayor valor pagan tarifas proporcionalmente más altas. Escalones horizontales indican tramos con tarifa fija."
+  },
+  {
+    "objectID": "analisis_estatutos.html#progresividad-por-área",
+    "href": "analisis_estatutos.html#progresividad-por-área",
+    "title": "Análisis estatuto de Urrao",
+    "section": "3.2 Progresividad por área",
+    "text": "3.2 Progresividad por área\n\n3.2.1 Análisis de progresividad por área (generado dinámicamente)\nNo fue posible generar el análisis de progresividad por área para este municipio. Motivo: Datos de transcripción no disponibles o incompletos."
+  },
+  {
+    "objectID": "analisis_estatutos.html#posición-relativa-en-antioquia",
+    "href": "analisis_estatutos.html#posición-relativa-en-antioquia",
+    "title": "Análisis estatuto de Urrao",
+    "section": "4.1 Posición relativa en Antioquia",
+    "text": "4.1 Posición relativa en Antioquia\n\nRanking por complejidad normativa: 24 de 88 municipios\nNúmero de reglas: 2\nClasificación: Complejidad normativa medio-alta"
+  },
+  {
+    "objectID": "analisis_estatutos.html#visualizaciones-del-contexto-departamental",
+    "href": "analisis_estatutos.html#visualizaciones-del-contexto-departamental",
+    "title": "Análisis estatuto de Urrao",
+    "section": "4.2 Visualizaciones del contexto departamental",
+    "text": "4.2 Visualizaciones del contexto departamental\n\nTipologías agregadas del departamento\nComplejidad normativa por municipio\nMapa de complejidad normativa\nMapa de tarifas urbanas\nMapa de tarifas rurales"
+  },
+  {
+    "objectID": "analisis_estatutos.html#estatutos-y-documentos-fuente",
+    "href": "analisis_estatutos.html#estatutos-y-documentos-fuente",
+    "title": "Análisis estatuto de Urrao",
+    "section": "5.1 Estatutos y documentos fuente",
+    "text": "5.1 Estatutos y documentos fuente\nLos documentos fuente están en proceso de digitalización."
+  },
+  {
+    "objectID": "analisis_estatutos.html#metodología-del-análisis",
+    "href": "analisis_estatutos.html#metodología-del-análisis",
+    "title": "Análisis estatuto de Urrao",
+    "section": "5.2 Metodología del análisis",
+    "text": "5.2 Metodología del análisis\nEste análisis forma parte del proyecto de sistematización de estatutos tributarios de Antioquia, que incluye:\n\nTranscripción normativa: Conversión de estatutos físicos a formato digital estructurado\nCategorización: Identificación de criterios tarifarios (avalúo, área, destino, estrato)\nAnálisis de progresividad: Evaluación de la coherencia y equidad del sistema tarifario\nComparación intermunicipal: Benchmarking con otros municipios del departamento\n\nPara más información sobre la metodología completa, consulte el análisis departamental."
+  },
+  {
+    "objectID": "analisis_estatutos.html#dashboard-de-análisis-tributario",
+    "href": "analisis_estatutos.html#dashboard-de-análisis-tributario",
+    "title": "Análisis estatuto de Urrao",
+    "section": "6.1 Dashboard de análisis tributario",
+    "text": "6.1 Dashboard de análisis tributario\nEste resumen integra los principales hallazgos del análisis tributario de Urrao :\nDashboard visual no disponible para este municipio."
+  },
+  {
+    "objectID": "analisis_estatutos.html#análisis-temporal-de-la-normativa",
+    "href": "analisis_estatutos.html#análisis-temporal-de-la-normativa",
+    "title": "Análisis estatuto de Urrao",
+    "section": "7.1 Análisis temporal de la normativa",
+    "text": "7.1 Análisis temporal de la normativa\n\n7.1.1 Evolución de la actividad normativa\n\nAños con mayor actividad normativa: 2020, 2021\nPeríodo de mayor estabilidad: Actividad normativa continua en el período analizado"
+  },
+  {
+    "objectID": "analisis_estatutos.html#tipología-normativa",
+    "href": "analisis_estatutos.html#tipología-normativa",
+    "title": "Análisis estatuto de Urrao",
+    "section": "7.2 Tipología normativa",
+    "text": "7.2 Tipología normativa\n\n7.2.1 Distribución por tipo de normativa\n\nInstrumento normativo predominante: ESTATUTO ( 1 registros, 50 %) ## Comparación departamental\nRegistros de este municipio: 2\nPromedio departamental: 11.4\nMediana departamental: 1\nClasificación: Por debajo del promedio departamental ( 82.4 % menos registros)\nPercentil departamental: 94.3 % ( 5.7 % de municipios tienen más registros)"
+  },
+  {
+    "objectID": "analisis_estatutos.html#recomendaciones-de-política-tributaria",
+    "href": "analisis_estatutos.html#recomendaciones-de-política-tributaria",
+    "title": "Análisis estatuto de Urrao",
+    "section": "8.1 Recomendaciones de política tributaria",
+    "text": "8.1 Recomendaciones de política tributaria\nBasándose en el análisis comparativo, se sugieren las siguientes recomendaciones:\n\n8.1.1 Optimización del esquema actual (Complejidad media)\n\nEficiencia: Evaluar la efectividad del esquema actual en términos de recaudo y equidad\nActualización periódica: Establecer cronogramas regulares de revisión normativa\nMonitoreo: Implementar indicadores de seguimiento a la aplicación de tarifas\nParticipación: Involucrar a la ciudadanía en procesos de actualización normativa\n\n\n\n8.1.2 Recomendaciones generales\n\nTransparencia: Publicar de manera clara y accesible todas las tarifas vigentes\nTecnología: Aprovechar herramientas digitales para mejorar la gestión tributaria\nEquidad: Evaluar periódicamente el impacto distributivo del sistema tarifario\nCoordinación: Mantener coherencia con las políticas tributarias departamentales"
+  }
+]
